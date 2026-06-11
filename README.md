@@ -41,10 +41,19 @@ pip install -r requirements.txt
 4. Set the **Redirect URI** to: `http://127.0.0.1:8888/callback`
 5. Check **Web API** under APIs used
 6. Click **Save**, then go to **Settings** to find your **Client ID** and **Client Secret**
+7. Under **User Management**, add your Spotify account email address
 
 ---
 
-### 5. Configure your credentials
+### 5. Get a Claude API key
+
+Sign up at [console.anthropic.com](https://console.anthropic.com) and create an API key.
+
+> Keep this private — treat it like a password.
+
+---
+
+### 6. Configure your credentials
 
 Copy `.env.example` to a new file called `.env`:
 
@@ -64,7 +73,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 ---
 
-### 6. Configure your sources
+### 7. Configure your sources
 
 Copy `config/sources.example.json` to `config/sources.json`:
 
@@ -72,7 +81,7 @@ Copy `config/sources.example.json` to `config/sources.json`:
 cp config/sources.example.json config/sources.json
 ```
 
-Edit `config/sources.json` to set which playlists to pull songs from. You can find a playlist's ID in its Spotify URL — it's the string between `/playlist/` and `?`.
+Edit `config/sources.json` to choose where to pull songs from. Set `liked_songs` to `true` to include your liked songs, and add any playlists you want to pull from. You can find a playlist's ID in its Spotify URL — it's the string between `/playlist/` and `?`.
 
 ```json
 {
@@ -85,7 +94,7 @@ Edit `config/sources.json` to set which playlists to pull songs from. You can fi
 
 ---
 
-### 7. Configure your target playlists
+### 8. Configure your target playlists
 
 Copy `config/playlists.example.json` to `config/playlists.json`:
 
@@ -93,24 +102,29 @@ Copy `config/playlists.example.json` to `config/playlists.json`:
 cp config/playlists.example.json config/playlists.json
 ```
 
-Edit `config/playlists.json` to define the playlists you want songs sorted into. The more detail you provide in the description, the better Claude will classify.
+Edit `config/playlists.json` to define the playlists you want songs sorted into. The more detail you give Claude in the description, the better the classification will be — include example artists and songs to help it understand the vibe.
+
+Each playlist needs a `spotify_id` — create the playlist in Spotify first, then grab its ID from the URL (the string between `/playlist/` and `?`).
 
 ```json
 [
   {
     "name": "Chill",
+    "spotify_id": "your_playlist_id_here",
     "description": "Relaxed, low energy, background listening. Good for studying or winding down.",
     "example_artists": ["Bon Iver", "Novo Amor"],
-    "example_songs": ["Skinny Love", "Carry You"]
+    "example_songs": ["Skinny Love - Bon Iver", "Carry You - Novo Amor"]
   }
 ]
 ```
+
+> **Note:** Due to Spotify API restrictions on development apps, Sortify cannot create playlists automatically. You need to create them manually in Spotify once and add their IDs here.
 
 ---
 
 ## Usage
 
-### Fetch songs
+### Step 1 — Fetch songs
 
 Pull all songs from your liked songs and configured playlists:
 
@@ -120,7 +134,45 @@ python fetch_songs.py
 
 On first run, a browser window will open asking you to log in to Spotify and grant access. After that, your session is cached and future runs are fully automatic.
 
-Songs are saved to `data/songs.json` and deduplicated — running this multiple times won't create duplicates.
+Songs are saved to `data/songs.json` and deduplicated — running this multiple times won't create duplicates. Songs already sorted won't be classified again.
+
+---
+
+### Step 2 — Classify songs
+
+Run Claude to sort each song into the best matching playlist:
+
+```
+python classify.py
+```
+
+Songs are processed in batches of 30. Progress is saved after each batch — if it's interrupted, just re-run and it will pick up where it left off.
+
+---
+
+### Step 3 — Upload to Spotify
+
+Add the classified songs to your Spotify playlists:
+
+```
+python upload.py
+```
+
+On first run, a browser window will open to authorise write access to your playlists. Songs already in a playlist are skipped automatically so re-running won't create duplicates.
+
+---
+
+## Keeping it up to date
+
+When you add new songs to Spotify, just run all three steps again:
+
+```
+python fetch_songs.py
+python classify.py
+python upload.py
+```
+
+Only new songs will be fetched, classified, and uploaded.
 
 ---
 
@@ -129,14 +181,16 @@ Songs are saved to `data/songs.json` and deduplicated — running this multiple 
 ```
 Sortify/
 ├── config/
-│   ├── sources.json          ← where to pull songs from (gitignored)
-│   ├── sources.example.json  ← template
-│   ├── playlists.json        ← target playlists for sorting (gitignored)
-│   └── playlists.example.json← template
+│   ├── sources.json            ← where to pull songs from (gitignored)
+│   ├── sources.example.json    ← template
+│   ├── playlists.json          ← target playlists with Spotify IDs (gitignored)
+│   └── playlists.example.json  ← template
 ├── data/
-│   └── songs.json            ← fetched songs (gitignored, generated on run)
-├── fetch_songs.py            ← fetches songs from Spotify
-├── .env                      ← your API keys (gitignored)
-├── .env.example              ← template
+│   └── songs.json              ← fetched & classified songs (gitignored)
+├── fetch_songs.py              ← step 1: fetch songs from Spotify
+├── classify.py                 ← step 2: classify songs with Claude
+├── upload.py                   ← step 3: upload to Spotify playlists
+├── .env                        ← your API keys (gitignored)
+├── .env.example                ← template
 └── requirements.txt
 ```
