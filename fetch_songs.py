@@ -90,7 +90,6 @@ if __name__ == "__main__":
     with open("config/sources.json") as f:
         sources = json.load(f)
 
-    # Load existing songs.json to preserve sorted status
     existing = {}
     try:
         with open("data/songs.json", encoding="utf-8") as f:
@@ -108,7 +107,7 @@ if __name__ == "__main__":
             return
         seen_ids.add(tid)
         if tid in existing:
-            songs.append(existing[tid])  # preserve sorted flag
+            songs.append(existing[tid])
         else:
             song = track_to_song(track)
             song["sorted"] = False
