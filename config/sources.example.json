@@ -1,0 +1,6 @@
+{
+  "liked_songs": true,
+  "playlists": [
+    { "id": "your_playlist_id_here", "name": "Playlist Name" }
+  ]
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Playlist Name",
+    "description": "Describe the vibe, mood, or genre of this playlist. The more detail the better — Claude uses this to classify songs.",
+    "example_artists": ["Artist One", "Artist Two"],
+    "example_songs": ["Song Title One", "Song Title Two"]
+  },
+  {
+    "name": "Another Playlist",
+    "description": "Another description.",
+    "example_artists": [],
+    "example_songs": []
+  }
+]
