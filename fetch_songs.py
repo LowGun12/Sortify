@@ -6,22 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-auth_manager = SpotifyOAuth(
+sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=os.getenv("SPOTIFY_CLIENT_ID"),
     client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
     redirect_uri="http://127.0.0.1:8888/callback",
     scope="user-library-read playlist-read-private",
     cache_path=".spotify_cache"
-)
-
-if not auth_manager.get_cached_token():
-    print("No Spotify token found. A browser window will open for you to log in.")
-    print("After clicking Allow, you may see a blank page — that's normal, just wait.")
-    print()
-    auth_manager.get_access_token(as_dict=False)
-    print("Authentication successful!\n")
-
-sp = spotipy.Spotify(auth_manager=auth_manager)
+))
 
 
 def fetch_liked_songs():
@@ -44,14 +35,13 @@ def fetch_playlist_tracks(playlist_id, playlist_name):
     tracks = []
     offset = 0
     while True:
-        results = sp.playlist_items(playlist_id, limit=50, offset=offset, additional_types=["track"])
+        results = sp.playlist_items(playlist_id, limit=50, offset=offset)
         items = results["items"]
         if not items:
             break
         for item in items:
-            track = item.get("track") or item.get("item")
-            if track and track.get("id"):
-                tracks.append(track)
+            if item.get("track") and item["track"].get("id"):
+                tracks.append(item["track"])
         offset += 50
         if not results["next"]:
             break
@@ -90,6 +80,7 @@ if __name__ == "__main__":
     with open("config/sources.json") as f:
         sources = json.load(f)
 
+    
     existing = {}
     try:
         with open("data/songs.json", encoding="utf-8") as f:
@@ -107,7 +98,7 @@ if __name__ == "__main__":
             return
         seen_ids.add(tid)
         if tid in existing:
-            songs.append(existing[tid])
+            songs.append(existing[tid])  
         else:
             song = track_to_song(track)
             song["sorted"] = False
